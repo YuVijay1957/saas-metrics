@@ -22,3 +22,6 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+# Pip bootstrap
+get-pip.py
