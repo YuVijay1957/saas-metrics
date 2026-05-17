@@ -25,3 +25,6 @@ Thumbs.db
 
 # Pip bootstrap
 get-pip.py
+
+# Generated data files
+ingestion/raw_data/
