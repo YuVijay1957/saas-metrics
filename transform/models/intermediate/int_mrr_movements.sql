@@ -26,13 +26,16 @@ joined as (
 
 final as (
     select
-        mrr_month,
-        mrr_event_type,
+        event_id,
         customer_id,
+        subscription_id,
         customer_name,
         company_name,
         plan_name,
         subscription_status,
+        mrr_event_type,
+        mrr_month,
+        mrr_event_date,
         mrr_amount_usd,
         sum(mrr_amount_usd) over (
             partition by customer_id

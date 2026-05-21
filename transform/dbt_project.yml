@@ -33,7 +33,10 @@ models:
   transform:
     staging:
       +materialized: view
+      +schema: staging
     intermediate:
       +materialized: view
+      +schema: staging
     marts:
       +materialized: table
+      +schema: marts
