@@ -1,0 +1,74 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: "Cleaned and renamed customers from raw source"
+    columns:
+      - name: customer_id
+        description: "Unique identifier for each customer"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_email
+        description: "Customer email address"
+        tests:
+          - unique
+          - not_null
+
+      - name: signup_date
+        description: "Date customer signed up"
+        tests:
+          - not_null
+
+  - name: stg_subscriptions
+    description: "Cleaned and renamed subscriptions from raw source"
+    columns:
+      - name: subscription_id
+        description: "Unique identifier for each subscription"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: "Foreign key to stg_customers"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+
+      - name: subscription_status
+        description: "Current status of the subscription"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'churned', 'upgraded']
+
+      - name: plan_name
+        description: "Subscription plan name"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['starter', 'growth', 'business', 'enterprise']
+
+  - name: stg_mrr_events
+    description: "Cleaned and renamed MRR events from raw source"
+    columns:
+      - name: event_id
+        description: "Unique identifier for each MRR event"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: "Foreign key to stg_customers"
+        tests:
+          - not_null
+
+      - name: mrr_event_type
+        description: "Type of MRR event"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['new', 'expansion', 'churned']
