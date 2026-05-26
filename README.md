@@ -8,22 +8,23 @@ practices.
 - **Ingestion:** Python (pandas, faker)
 - **Warehouse:** Snowflake
 - **Transformation:** dbt (staging → intermediate → marts)
-- **Reporting:** Looker (LookML views and explores on dbt marts)
+- **Semantic Layer:** Looker (LookML views and explores on dbt marts)
 - **CI/CD:** GitHub Actions (automated dbt build and tests on every push)
 
 ## Architecture
 
 Raw data is ingested via Python scripts into Snowflake's raw schema. dbt 
 transforms raw data through three layers — staging, intermediate, and marts — 
-following analytics engineering best practices. Looker connects to the marts 
-layer via LookML for reporting and exploration. GitHub Actions automatically 
-runs dbt build on every push to main, ensuring all models and data quality 
-tests pass before changes reach production.
+following analytics engineering best practices. LookML defines a semantic layer 
+on top of the marts, exposing business-friendly dimensions and measures to 
+end users without requiring SQL knowledge. GitHub Actions automatically runs 
+dbt build on every push to main, ensuring all models and data quality tests 
+pass before changes reach production.
 
 ## Domain
 
 SaaS business metrics including MRR waterfall (new, expansion, churned), 
-customer lifetime value, churn analysis, and subscription analytics.
+customer lifetime value, churn rate, and subscription analytics.
 
 ## Data Pipeline
 
@@ -42,6 +43,11 @@ customer lifetime value, churn analysis, and subscription analytics.
 - **Marts** — final tables for reporting
   - `fct_mrr` — MRR fact table with waterfall components
   - `dim_customers` — customer dimension with subscription attributes
+
+### Semantic Layer (LookML)
+- `fct_mrr.view.lkml` — dimensions and measures for MRR fact table
+- `dim_customers.view.lkml` — dimensions, measures, and churn rate calculation
+- `mrr_analysis.explore.lkml` — join definition with many_to_one relationship
 
 ### Data Quality
 - 34 automated dbt tests across staging and marts
@@ -65,26 +71,55 @@ customer lifetime value, churn analysis, and subscription analytics.
 saas-metrics/
 ├── .github/
 │   └── workflows/
-│       └── dbt_ci.yml        # GitHub Actions CI pipeline
+│       └── dbt_ci.yml             # GitHub Actions CI/CD pipeline
 ├── ingestion/
-│   ├── generate_data.py      # Fake SaaS data generation
-│   └── load_to_snowflake.py  # Snowflake loader
-├── transform/                # dbt project
-│   └── models/
-│       ├── staging/          # Raw source cleaning
-│       ├── intermediate/     # Business logic
-│       └── marts/            # Reporting tables
-├── analysis/                 # Ad hoc SQL
-├── docs/                     # Architecture assets
+│   ├── generate_data.py           # Fake SaaS data generation
+│   └── load_to_snowflake.py       # Snowflake loader
+├── transform/                     # dbt project
+│   ├── models/
+│   │   ├── staging/               # Raw source cleaning
+│   │   ├── intermediate/          # Business logic
+│   │   └── marts/                 # Reporting tables
+│   └── macros/
+│       └── generate_schema_name.sql
+├── looker/
+│   ├── views/
+│   │   ├── fct_mrr.view.lkml      # MRR fact table semantic layer
+│   │   └── dim_customers.view.lkml # Customer dimension semantic layer
+│   └── explores/
+│       └── mrr_analysis.explore.lkml # MRR analysis explore
+├── docs/
+│   └── lineage.png                # dbt lineage graph
+├── .gitignore
+├── README.md
 └── requirements.txt
 
-## CI/CD
+## CI/CD Pipeline
 
-Every push to main triggers a GitHub Actions pipeline that:
-1. Installs Python dependencies
-2. Configures dbt with Snowflake credentials from GitHub Secrets
-3. Runs `dbt build` — all models and all 34 tests
-4. Fails the pipeline if any model or test fails
+Every push to main triggers a two-job GitHub Actions pipeline:
+
+**CI — Test on Dev:**
+- Installs Python dependencies
+- Configures dbt with dev Snowflake credentials from GitHub Secrets
+- Runs `dbt build` — all 7 models and 34 tests against dev Snowflake
+- Blocks merge if any model or test fails
+
+**CD — Deploy to Prod:**
+- Runs only after CI passes
+- Runs only on pushes to main — never on PRs
+- Deploys to prod Snowflake automatically
+- No engineer touches prod directly
+
+## Key Concepts Demonstrated
+
+- **ELT architecture** — raw data lands in Snowflake, transformed in place
+- **Three layer dbt convention** — staging, intermediate, marts
+- **Idempotent pipelines** — safe to run multiple times, same result
+- **Data quality testing** — 34 automated checks on every run
+- **Semantic layer** — LookML hides SQL complexity from business users
+- **CI/CD** — automated testing and deployment on every code change
+- **Dev/prod separation** — changes tested in dev before reaching prod
+- **Git workflow** — branch, PR, review, merge — no direct pushes to main
 
 ## Status
-✅ Active — ingestion, transformation, and CI/CD complete. LookML in progress.
+✅ Complete — ingestion, transformation, semantic layer, and CI/CD pipeline live.
