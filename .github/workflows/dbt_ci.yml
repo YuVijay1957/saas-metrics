@@ -1,4 +1,4 @@
-name: dbt CI
+name: dbt CI/CD
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  dbt-build:
+  dbt-ci:
+    name: CI - Test on Dev
     runs-on: ubuntu-latest
 
     steps:
@@ -41,6 +42,47 @@ jobs:
                 threads: 1
           EOF
 
-      - name: Run dbt build
+      - name: Run dbt build on dev
         working-directory: transform
         run: dbt build
+
+  dbt-cd:
+    name: CD - Deploy to Prod
+    runs-on: ubuntu-latest
+    needs: dbt-ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up dbt profiles
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << EOF
+          transform:
+            target: prod
+            outputs:
+              prod:
+                type: snowflake
+                account: ${{ secrets.SNOWFLAKE_ACCOUNT_PROD }}
+                user: ${{ secrets.SNOWFLAKE_USER_PROD }}
+                password: ${{ secrets.SNOWFLAKE_PASSWORD_PROD }}
+                role: saas_metrics_role
+                database: saas_metrics
+                warehouse: saas_metrics_wh
+                schema: staging_prod
+                threads: 1
+          EOF
+
+      - name: Deploy dbt to prod
+        working-directory: transform
+        run: dbt build --target prod
